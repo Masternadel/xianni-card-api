@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  functions = "src/api"
+
+[functions]
+  included_files = ["gambar/**"]
+
+[[functions]]
+  name = "card"
+  path = "src/api/card.js"
