@@ -187,7 +187,7 @@ async function generateCard(params) {
     ctx.font = '10px Arial';
     ctx.fillText('✦ @air1102 | Nadel ✦', cx, 482);
     
-    return canvas.toBuffer('image/jpeg', { quality: 0.85 })
+    return await canvas.encode('jpeg', 85);
 }
 
 module.exports = { generateCard, RARITY_MAP }
