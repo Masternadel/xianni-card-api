@@ -1,6 +1,6 @@
 // src/lib/canvas.js
 
-const { createCanvas, loadImage } = require('canvas')
+const { createCanvas, loadImage } = require('@napi-rs/canvas')
 const axios = require('axios')
 const sharp = require('sharp')
 const https = require('https')
