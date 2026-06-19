@@ -1,6 +1,6 @@
 // src/lib/canvas.js
 
-const { createCanvas, loadImage } = require('@napi-rs/canvas')
+const { createCanvas, loadImage } = require('canvas')
 const axios = require('axios')
 const sharp = require('sharp')
 const https = require('https')
@@ -18,15 +18,15 @@ const RARITY_MAP = {
 
 async function generateCard(params) {
     let { name, rarity, emoji, atk, def, hp, imageUrl } = params
-    
+
     const rarityInfo = RARITY_MAP[rarity] || RARITY_MAP['Common']
     emoji = (emoji && emoji !== '❓') ? emoji : rarityInfo.defaultEmoji;
     const width = 500
     const height = 500
-    
+
     const canvas = createCanvas(width, height)
     const ctx = canvas.getContext('2d')
-    
+
     // Helper untuk rounded rectangle yang aman
     const drawRoundRect = (x, y, w, h, r) => {
         ctx.beginPath();
@@ -37,10 +37,10 @@ async function generateCard(params) {
         ctx.arcTo(x, y, x + w, y, r);
         ctx.closePath();
     };
-    
+
     const cx = width / 2;
     const cy = height / 2;
-    
+
     // 1. Draw Background Image (Full Cover)
     ctx.fillStyle = '#0f0f23';
     ctx.fillRect(0, 0, width, height);
@@ -50,7 +50,7 @@ async function generateCard(params) {
             let img;
             if (imageUrl.startsWith('http')) {
                 // Download image manually with axios to bypass node-canvas SSL limitations
-                const response = await axios.get(imageUrl, { 
+                const response = await axios.get(imageUrl, {
                     responseType: 'arraybuffer',
                     httpsAgent: httpsAgent
                 });
@@ -62,16 +62,16 @@ async function generateCard(params) {
             }
             let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
             const size = Math.min(img.width, img.height);
-            
+
             if (img.width > img.height) {
                 sWidth = size;
                 sx = (img.width - size) / 2; // Center horizontal
             } else {
                 sHeight = size;
                 // Posisi crop di-set 25% dari atas (0.25) agar wajah / kepala pas di tengah (tidak terpotong)
-                sy = (img.height - size) * 0.25; 
+                sy = (img.height - size) * 0.25;
             }
-            
+
             // Gambar mengisi SELURUH background (500x500)
             ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, width, height);
         } catch (e) {
@@ -90,7 +90,7 @@ async function generateCard(params) {
         ctx.textAlign = 'center';
         ctx.fillText(emoji, cx, cy + 50);
     }
-    
+
     // 2. Gradient Overlay (Gelap di atas & bawah agar teks terbaca jelas)
     const overlayGrad = ctx.createLinearGradient(0, 0, 0, height);
     overlayGrad.addColorStop(0, 'rgba(0,0,0,0.6)');
@@ -99,12 +99,12 @@ async function generateCard(params) {
     overlayGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
     ctx.fillStyle = overlayGrad;
     ctx.fillRect(0, 0, width, height);
-    
+
     // 3. Premium Outer Border (Sesuai warna Rarity)
     ctx.strokeStyle = rarityInfo.color;
     ctx.lineWidth = 10;
     ctx.strokeRect(0, 0, width, height);
-    
+
     // Inner glowing border (Glassmorphism effect)
     ctx.shadowColor = rarityInfo.color;
     ctx.shadowBlur = 15;
@@ -113,7 +113,7 @@ async function generateCard(params) {
     drawRoundRect(15, 15, width - 30, height - 30, 15);
     ctx.stroke();
     ctx.shadowBlur = 0; // reset
-    
+
     // 4. Header UI (Absolute Floating di Atas)
     // Name Tag (Kiri Atas)
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -122,72 +122,72 @@ async function generateCard(params) {
     drawRoundRect(25, 25, 230, 35, 10);
     ctx.fill();
     ctx.stroke();
-    
+
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(emoji + ' ' + name, 40, 48);
-    
+
     // Tier Badge (Kanan Atas)
     ctx.fillStyle = rarityInfo.color;
     drawRoundRect(width - 145, 25, 120, 35, 10);
     ctx.fill();
-    
+
     ctx.fillStyle = '#000';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(rarityInfo.tier.toUpperCase(), width - 85, 48);
-    
+
     // 5. Stats UI (Absolute Floating di Bawah)
     const statY = 360;
     const statW = 120;
     const statGap = 20;
     const statStartX = cx - (statW * 1.5) - statGap;
-    
+
     const stats = [
         { label: 'ATK', value: atk, color: '#ff4757', icon: '⚔️' },
         { label: 'DEF', value: def, color: '#1e90ff', icon: '🛡️' },
         { label: 'HP', value: hp, color: '#2ed573', icon: '❤️' }
     ];
-    
+
     stats.forEach((stat, i) => {
         const x = statStartX + (i * (statW + statGap));
-        
+
         // Glassmorphism Box untuk Stat
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.strokeStyle = stat.color; 
+        ctx.strokeStyle = stat.color;
         ctx.lineWidth = 2;
         drawRoundRect(x, statY, statW, 70, 12);
         ctx.fill();
         ctx.stroke();
-        
+
         // Text Shadow untuk efek Pop
         ctx.shadowColor = '#000';
         ctx.shadowBlur = 5;
-        
+
         ctx.fillStyle = '#ddd';
         ctx.font = 'bold 12px Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(stat.icon + ' ' + stat.label, x + statW / 2, statY + 25);
-        
+
         ctx.shadowBlur = 0; // reset
-        
+
         ctx.fillStyle = stat.color;
         ctx.font = 'bold 26px Arial';
         ctx.fillText(stat.value, x + statW / 2, statY + 55);
     });
-    
+
     // 6. Footer (Cultivation Stage di bagian terbawah)
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.font = 'italic 13px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Cultivation: ' + rarityInfo.cult, cx, 465);
-    
+
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '10px Arial';
     ctx.fillText('✦ @air1102 | Nadel ✦', cx, 482);
-    
-    return await canvas.encode('jpeg', 85);
+
+    return canvas.toBuffer('image/jpeg', { quality: 0.85 })
 }
 
 module.exports = { generateCard, RARITY_MAP }
